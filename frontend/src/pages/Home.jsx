@@ -179,7 +179,7 @@ const Home = () => {
               <div className="flex gap-4">
                 <a
                   href="/upload-timetable"
-                  className="group relative px-8 py-4 bg-blue-600 rounded-lg overflow-hidden"
+                  className="group relative px-8 py-4 border-white/20 rounded-lg overflow-hidden"
                 >
                   <div className="absolute inset-0 w-3 bg-blue-400 transition-all duration-[250ms] ease-out group-hover:w-full"></div>
                   <span className="relative text-white group-hover:text-white">Get Started</span>
@@ -188,8 +188,8 @@ const Home = () => {
                   href="/schedule-demo"
                   className="group px-8 py-4 border border-white/20 rounded-lg relative overflow-hidden"
                 >
-                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-500 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
-                  <span className="relative">Schedule a Demo</span>
+                  <div className="absolute inset-0 w-3 bg-blue-400 transition-all duration-[250ms] ease-out group-hover:w-full"></div>
+                  <span className="relative text-white group-hover:text-white">Schedule a Demo</span>
                 </a>
               </div>
             </div>
