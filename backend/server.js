@@ -81,7 +81,7 @@ updateDatabaseSchema();
 
 // Add a new teacher
 app.post("/api/teachers", async (req, res) => {
-    const { name } = req.body;
+    const { name, freePeriods } = req.body;
   
     if (!name) {
       return res.status(400).json({ error: "Teacher name is required" });
@@ -89,8 +89,8 @@ app.post("/api/teachers", async (req, res) => {
   
     try {
       const result = await pool.query(
-        "INSERT INTO teachers (name) VALUES ($1) RETURNING *",
-        [name]
+        "INSERT INTO teachers (name, free_periods) VALUES ($1, $2) RETURNING *",
+        [name, freePeriods || '[]'] // default empty array if no free periods provided
       );
       res.json(result.rows[0]);
     } catch (err) {
@@ -98,35 +98,46 @@ app.post("/api/teachers", async (req, res) => {
       res.status(500).json({ error: "Failed to add teacher" });
     }
   });
-  
 
 // Add a new timetable
-app.post('/api/timetable', async (req, res) => {
-    const { teacherName, timetable } = req.body;
+app.post("/api/timetable", async (req, res) => {
+    const { teacherId, timetable } = req.body;
+    if (!teacherId || !timetable) {
+      return res.status(400).json({ error: "Teacher ID and timetable are required" });
+    }
     try {
-        // Get the teacher ID
-        const teacher = await pool.query('SELECT teacher_id FROM teachers WHERE name = $1', [teacherName]);
-        if (teacher.rows.length === 0) {
-            return res.status(404).json({ error: 'Teacher not found' });
-        }
-
-        const teacherId = teacher.rows[0].teacher_id;
-
-        // Insert the timetable for each day
-        for (let i = 0; i < timetable.length; i++) {
-            const dayOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"][i];
-            const periods = timetable[i];
-
-            await pool.query(
-                'INSERT INTO timetables (teacher_id, day_of_week, periods) VALUES ($1, $2, $3)',
-                [teacherId, dayOfWeek, JSON.stringify(periods)]
-            );
-        }
-
-        res.status(200).json({ message: 'Timetable saved successfully!' });
+      const result = await pool.query(
+        "INSERT INTO timetables (teacher_id) VALUES ($1) RETURNING timetable_id",
+        [teacherId]
+      );
+  
+      const timetableId = result.rows[0].timetable_id;
+  
+      const queries = timetable.flatMap((row, dayIndex) =>
+        row.map((cell, periodIndex) => ({
+          text: `
+            INSERT INTO timetable_periods (
+              timetable_id, day_of_week, period_number, class_section, subject
+            ) VALUES ($1, $2, $3, $4, $5)
+          `,
+          values: [
+            timetableId,
+            ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"][dayIndex],
+            periodIndex + 1,
+            cell.classSection,
+            cell.subject,
+          ],
+        }))
+      );
+  
+      for (const query of queries) {
+        await pool.query(query.text, query.values);
+      }
+  
+      res.json({ message: "Timetable saved successfully" });
     } catch (err) {
-        console.error('Error saving timetable:', err);
-        res.status(500).json({ error: 'Failed to save timetable' });
+      console.error(err);
+      res.status(500).json({ error: "Failed to save timetable" });
     }
 });
 
