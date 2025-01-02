@@ -29,7 +29,7 @@ a:hover {
 body {
   margin: 0;
   display: flex;
-  place-items: center;
+  flex-direction: column;
   min-width: 320px;
   min-height: 100vh;
   @apply bg-gray-900 text-white;
@@ -73,7 +73,16 @@ button:focus-visible {
 }
 
 #root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
+  width: 100%; /* Takes full width */
+  max-width: 100%; /* No maximum limit */
+  margin: 0; /* Remove center alignment margin */
+  padding: 0; /* Remove default padding */
+}
+
+main {
+  width: 100%; /* Ensures full width of content */
+  display: flex; /* Flexible layout */
+  flex-direction: column; /* Stacks elements vertically */
+  align-items: center; /* Centers items horizontally */
+  justify-content: center; /* Centers items vertically */
 }

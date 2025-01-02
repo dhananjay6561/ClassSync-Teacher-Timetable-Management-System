@@ -10,7 +10,7 @@ const App = () => {
   return (
     <BrowserRouter>
       <Navbar />
-      <main className="p-6">
+      <main className="p-2">
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/upload-timetable" element={<UploadTimetable />} />
