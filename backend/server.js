@@ -80,19 +80,25 @@ updateDatabaseSchema();
 // Routes
 
 // Add a new teacher
-app.post('/api/teachers', async (req, res) => {
-    const { name, freePeriods } = req.body; // Expect freePeriods as JSON
-    try {
-        const result = await pool.query(
-            'INSERT INTO teachers (name, free_periods) VALUES ($1, $2) RETURNING *',
-            [name, JSON.stringify(freePeriods || [])]
-        );
-        res.status(201).json(result.rows[0]);
-    } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server error');
+app.post("/api/teachers", async (req, res) => {
+    const { name } = req.body;
+  
+    if (!name) {
+      return res.status(400).json({ error: "Teacher name is required" });
     }
-});
+  
+    try {
+      const result = await pool.query(
+        "INSERT INTO teachers (name) VALUES ($1) RETURNING *",
+        [name]
+      );
+      res.json(result.rows[0]);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to add teacher" });
+    }
+  });
+  
 
 // Add a new timetable
 app.post('/api/timetable', async (req, res) => {

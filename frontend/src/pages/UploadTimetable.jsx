@@ -1,114 +1,188 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Calendar, Clock, User, Save } from "lucide-react";
+import { Calendar, Clock, User, Save, PlusCircle } from "lucide-react";
 
 const UploadTimetable = () => {
   const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
   const periods = [1, 2, 3, 4, 5, 6, 7, 8];
-  const [teacherName, setTeacherName] = useState("");
-  const [timetable, setTimetable] = useState(Array(5).fill(Array(8).fill("")));
-  const [focusedCell, setFocusedCell] = useState(null);
+  const [teachers, setTeachers] = useState([]);
+  const [selectedTeacherId, setSelectedTeacherId] = useState("");
+  const [newTeacherName, setNewTeacherName] = useState("");
+  const [timetable, setTimetable] = useState(Array(5).fill(Array(8).fill({ classSection: "", subject: "" })));
+  const [isAddingTeacher, setIsAddingTeacher] = useState(false);
 
-  // Animation variants for different elements
-  const containerVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: {
-        duration: 0.6,
-        ease: "easeOut",
-        staggerChildren: 0.1
+  // Fetch all teachers from backend
+  useEffect(() => {
+    const fetchTeachers = async () => {
+      try {
+        const response = await fetch("http://localhost:5000/api/teachers");
+        const data = await response.json();
+        setTeachers(data);
+      } catch (err) {
+        console.error("Error fetching teachers:", err);
       }
-    }
-  };
+    };
 
-  const itemVariants = {
-    hidden: { opacity: 0, x: -20 },
-    visible: {
-      opacity: 1,
-      x: 0,
-      transition: { duration: 0.4 }
-    }
-  };
+    fetchTeachers();
+  }, []);
 
-  const handleTimetableChange = (dayIndex, periodIndex, value) => {
+  // Fetch timetable for the selected teacher
+  useEffect(() => {
+    const fetchTimetable = async () => {
+      if (selectedTeacherId) {
+        try {
+          const response = await fetch(`http://localhost:5000/api/timetable/${selectedTeacherId}`);
+          if (response.ok) {
+            const data = await response.json();
+            setTimetable(data.timetable);
+          } else {
+            setTimetable(Array(5).fill(Array(8).fill({ classSection: "", subject: "" })));
+          }
+        } catch (err) {
+          console.error("Error fetching timetable:", err);
+        }
+      }
+    };
+
+    fetchTimetable();
+  }, [selectedTeacherId]);
+
+  const handleTimetableChange = (dayIndex, periodIndex, field, value) => {
     const newTimetable = timetable.map((row, i) =>
-      i === dayIndex ? [...row.slice(0, periodIndex), value, ...row.slice(periodIndex + 1)] : [...row]
+      i === dayIndex
+        ? row.map((cell, j) => (j === periodIndex ? { ...cell, [field]: value } : cell))
+        : row
     );
     setTimetable(newTimetable);
   };
 
+  const handleAddTeacher = async () => {
+    if (!newTeacherName.trim()) {
+      alert("Please enter a valid teacher name.");
+      return;
+    }
+
+    try {
+      const response = await fetch("http://localhost:5000/api/teachers", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ name: newTeacherName }),
+      });
+      
+
+      if (response.ok) {
+        const newTeacher = await response.json();
+        setTeachers([...teachers, newTeacher]);
+        setNewTeacherName("");
+        setIsAddingTeacher(false);
+        alert("Teacher added successfully!");
+      } else {
+        alert("Error adding teacher.");
+      }
+    } catch (err) {
+      console.error("Error adding teacher:", err);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-  
+
+    // Replace empty cells with "FREE"
+    const finalizedTimetable = timetable.map((row) =>
+      row.map((cell) => ({
+        classSection: cell.classSection.trim() || "FREE",
+        subject: cell.subject.trim() || "FREE",
+      }))
+    );
+
     try {
       const response = await fetch("http://localhost:5000/api/timetable", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ teacherName, timetable }),
+        body: JSON.stringify({ teacherId: selectedTeacherId, timetable: finalizedTimetable }),
       });
-  
+
       if (response.ok) {
-        const data = await response.json();
-        console.log(data.message);
         alert("Timetable saved successfully!");
-        // Optionally, reset the form
-        setTeacherName("");
-        setTimetable(Array(5).fill(Array(8).fill("")));
+        setTimetable(Array(5).fill(Array(8).fill({ classSection: "", subject: "" })));
       } else {
-        const error = await response.json();
-        alert("Error saving timetable: " + error.error);
+        alert("Error saving timetable.");
       }
     } catch (err) {
       console.error("Error submitting timetable:", err);
-      alert("An unexpected error occurred.");
     }
   };
-  
 
   return (
-    <motion.div 
+    <motion.div
       className="min-h-screen bg-gradient-to-b from-[#0A1121] to-[#1a2942] p-8"
-      initial="hidden"
-      animate="visible"
-      variants={containerVariants}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6, ease: "easeOut" }}
     >
       <div className="max-w-6xl mx-auto">
-        <motion.div 
-          className="bg-white/10 backdrop-blur-lg p-8 rounded-2xl shadow-xl"
-          variants={itemVariants}
-        >
+        <div className="bg-white/10 backdrop-blur-lg p-8 rounded-2xl shadow-xl">
           <div className="flex items-center space-x-4 mb-8">
             <Calendar className="w-8 h-8 text-[#4F67FF]" />
             <h1 className="text-3xl font-bold text-white">Upload Timetable</h1>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-8">
-            <motion.div 
-              className="bg-white/5 p-6 rounded-xl"
-              variants={itemVariants}
-            >
-              <div className="flex items-center space-x-4 mb-4">
-                <User className="w-5 h-5 text-[#4F67FF]" />
-                <label className="text-lg font-medium text-white">Teacher Name</label>
+            <div className="bg-white/5 p-6 rounded-xl">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center space-x-4">
+                  <User className="w-5 h-5 text-[#4F67FF]" />
+                  <label className="text-lg font-medium text-white">Select Teacher</label>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsAddingTeacher(true)}
+                  className="flex items-center px-4 py-2 bg-[#4F67FF] text-white rounded-lg shadow-md hover:bg-[#6A7FFF] transition-colors"
+                >
+                  <PlusCircle className="w-5 h-5 mr-2" />
+                  Add Teacher
+                </button>
               </div>
-              <input
-                type="text"
-                value={teacherName}
-                onChange={(e) => setTeacherName(e.target.value)}
-                className="w-full p-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-[#4F67FF] transition-all duration-300"
-                placeholder="Enter teacher's name"
+              {isAddingTeacher && (
+                <div className="space-y-4 mb-4">
+                  <input
+                    type="text"
+                    value={newTeacherName}
+                    onChange={(e) => setNewTeacherName(e.target.value)}
+                    className="w-full p-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-[#4F67FF] transition-all duration-300"
+                    placeholder="Enter new teacher's name"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddTeacher}
+                    className="px-6 py-2 bg-[#4F67FF] text-white rounded-lg shadow-md hover:bg-[#6A7FFF] transition-colors"
+                  >
+                    Save Teacher
+                  </button>
+                </div>
+              )}
+              <select
+                value={selectedTeacherId}
+                onChange={(e) => setSelectedTeacherId(e.target.value)}
+                className="w-full p-3 rounded-lg bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-[#4F67FF] transition-all duration-300"
                 required
-              />
-            </motion.div>
+              >
+                <option value="" disabled>
+                  Select a teacher
+                </option>
+                {teachers.map((teacher) => (
+                  <option key={teacher.teacher_id} value={teacher.teacher_id}>
+                    {teacher.name} (ID: {teacher.teacher_id})
+                  </option>
+                ))}
+              </select>
+            </div>
 
-            <motion.div 
-              className="overflow-x-auto"
-              variants={itemVariants}
-            >
+            <div className="overflow-x-auto">
               <table className="w-full border-collapse">
                 <thead>
                   <tr>
@@ -125,30 +199,36 @@ const UploadTimetable = () => {
                 <tbody>
                   {daysOfWeek.map((day, dayIndex) => (
                     <tr key={day}>
-                      <td className="bg-[#4F67FF]/10 p-4 text-white font-medium">
-                        {day}
-                      </td>
+                      <td className="bg-[#4F67FF]/10 p-4 text-white font-medium">{day}</td>
                       {periods.map((_, periodIndex) => (
                         <td key={periodIndex} className="p-2">
-                          <motion.input
-                            type="text"
-                            placeholder="Class/Section"
-                            value={timetable[dayIndex][periodIndex]}
-                            onChange={(e) =>
-                              handleTimetableChange(dayIndex, periodIndex, e.target.value)
-                            }
-                            onFocus={() => setFocusedCell(`${dayIndex}-${periodIndex}`)}
-                            onBlur={() => setFocusedCell(null)}
-                            className="w-full p-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-[#4F67FF] focus:bg-white/10 transition-all duration-300"
-                            whileHover={{ scale: 1.02 }}
-                          />
+                          <div className="space-y-2">
+                            <input
+                              type="text"
+                              placeholder="Class/Section"
+                              value={timetable[dayIndex][periodIndex].classSection}
+                              onChange={(e) =>
+                                handleTimetableChange(dayIndex, periodIndex, "classSection", e.target.value)
+                              }
+                              className="w-full p-2 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-[#4F67FF]"
+                            />
+                            <input
+                              type="text"
+                              placeholder="Subject"
+                              value={timetable[dayIndex][periodIndex].subject}
+                              onChange={(e) =>
+                                handleTimetableChange(dayIndex, periodIndex, "subject", e.target.value)
+                              }
+                              className="w-full p-2 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-[#4F67FF]"
+                            />
+                          </div>
                         </td>
                       ))}
                     </tr>
                   ))}
                 </tbody>
               </table>
-            </motion.div>
+            </div>
 
             <motion.button
               type="submit"
@@ -160,7 +240,7 @@ const UploadTimetable = () => {
               <span>Submit Timetable</span>
             </motion.button>
           </form>
-        </motion.div>
+        </div>
       </div>
     </motion.div>
   );
