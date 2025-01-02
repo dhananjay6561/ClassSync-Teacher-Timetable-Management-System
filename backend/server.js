@@ -33,7 +33,7 @@ pool.query('SELECT NOW()', (err, res) => {
     }
 });
 
-// Updated Database Schema
+// Updated Database Schema (including free_periods for teachers)
 async function updateDatabaseSchema() {
     try {
         // Drop existing tables if needed
@@ -45,7 +45,8 @@ async function updateDatabaseSchema() {
         await pool.query(`
             CREATE TABLE teachers (
                 teacher_id SERIAL PRIMARY KEY,
-                name VARCHAR(255) NOT NULL UNIQUE
+                name VARCHAR(255) NOT NULL UNIQUE,
+                free_periods JSONB DEFAULT '[]' -- Store free periods as JSON
             );
         `);
 
@@ -80,11 +81,11 @@ updateDatabaseSchema();
 
 // Add a new teacher
 app.post('/api/teachers', async (req, res) => {
-    const { name } = req.body;
+    const { name, freePeriods } = req.body; // Expect freePeriods as JSON
     try {
         const result = await pool.query(
-            'INSERT INTO teachers (name) VALUES ($1) RETURNING *',
-            [name]
+            'INSERT INTO teachers (name, free_periods) VALUES ($1, $2) RETURNING *',
+            [name, JSON.stringify(freePeriods || [])]
         );
         res.status(201).json(result.rows[0]);
     } catch (err) {
@@ -201,7 +202,7 @@ app.post('/api/substitutions', async (req, res) => {
 
         // Generate substitutions
         for (const leaveTeacher of leaveTeachers) {
-            const { teacher_id, date } = leaveTeacher;
+            const { teacher_id } = leaveTeacher;
 
             // Find working periods of the absent teacher
             const absentTeacherTimetable = await pool.query(
@@ -212,9 +213,10 @@ app.post('/api/substitutions', async (req, res) => {
             const workingPeriods = absentTeacherTimetable.rows;
 
             for (const period of workingPeriods) {
+                // Find a substitute teacher who is free during the absent teacher's period
                 const substitute = allTeachers.find(t =>
                     t.teacher_id !== teacher_id &&
-                    t.free_periods.includes(period)
+                    t.free_periods.includes(period.day_of_week)
                 );
 
                 if (substitute) {
