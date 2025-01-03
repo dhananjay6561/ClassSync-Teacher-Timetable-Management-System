@@ -13,12 +13,12 @@ const Footer = () => {
     },
     {
       icon: Linkedin,
-      href: "https://linkedin.com",
+      href: "https://www.linkedin.com/in/dhananjay-aggarwal6561/",
       label: "LinkedIn"
     },
     {
       icon: Mail,
-      href: "mailto:contact@classsync.com",
+      href: "mailto:dhananjayaggarwal6561@gmail.com",
       label: "Email"
     }
   ];
@@ -73,13 +73,12 @@ const Footer = () => {
           </div>
         </div>
 
-        {/* Divider with gradient */}
         <div className="relative h-px w-full overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#4F67FF]/20 to-transparent" />
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#4F67FF]/40 to-transparent translate-x-full group-hover:translate-x-0 transition-transform duration-500" />
         </div>
 
-        {/* Bottom section */}
+        
         <div className="py-6 flex flex-col sm:flex-row justify-between items-center gap-4">
           <p className="text-sm text-center sm:text-left font-medium">
             &copy; {currentYear} ClassSync. All rights reserved.
