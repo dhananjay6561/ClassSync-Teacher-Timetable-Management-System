@@ -7,6 +7,7 @@ import SubstitutionList from "./pages/SubstitutionList";
 import NotFound from "./pages/404Error";
 import "./index.css";
 import { Analytics } from "@vercel/analytics/react";
+import Footer from "./components/Footer";
 
 const App = () => {
   return (
@@ -19,6 +20,7 @@ const App = () => {
           <Route path="/substitutions" element={<SubstitutionList />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
+        <Footer />
         <Analytics />
       </main>
     </BrowserRouter>

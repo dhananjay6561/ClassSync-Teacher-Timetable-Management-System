@@ -1,5 +1,4 @@
 import React from "react";
-import Footer from "../components/Footer";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls, useGLTF, Text3D, Center } from "@react-three/drei";
 import { Suspense, useState, useRef, useEffect } from "react";
@@ -298,7 +297,7 @@ const Home = () => {
         </div>
       </section>
 
-      <Footer />
+      
     </div>
   );
 };
